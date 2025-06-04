@@ -1,7 +1,8 @@
+
 const map = L.map('map').setView([45.0, -93.0], 8);
 L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
-// Load first GeoJSON
+// Load wells geojson layer
 fetch('/static/raw_geojson/well_nitrate.geojson')
   .then(res => res.json())
   .then(data => {
@@ -13,7 +14,7 @@ fetch('/static/raw_geojson/well_nitrate.geojson')
     }).addTo(map);
   });
 
-  // Load first GeoJSON
+  // Load census tract cancer geojson layer
 fetch('/static/raw_geojson/cancer_tracts.geojson')
   .then(res => res.json())
   .then(data => {
