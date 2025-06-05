@@ -1,6 +1,32 @@
 
-const map = L.map('map').setView([44.63123767665573, -89.64431989719363], 7);
-L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+// SETTING UP THE MAP //
+
+//Basemaps
+var grey = L.tileLayer('https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png', {
+	attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors &copy; <a href="https://carto.com/attributions">CARTO</a>',
+	subdomains: 'abcd',
+	maxZoom: 20
+});
+
+const satellite = L.tileLayer('https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}', {
+  attribution: 'Tiles &copy; Esri'
+});
+
+var stadia = L.tileLayer('https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y}{r}.{ext}', {
+	attribution: '&copy; <a href="https://www.stadiamaps.com/" target="_blank">Stadia Maps</a> &copy; <a href="https://openmaptiles.org/" target="_blank">OpenMapTiles</a> &copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors',
+	ext: 'png'
+});
+
+const map = L.map('map', {
+  center: [44.63123767665573, -89.64431989719363],
+  zoom: 7,
+  layers: [grey]
+});
+
+//Ensures well layer is in front of census tract layer
+map.createPane('wellPane');
+map.getPane('wellPane').style.zIndex = 650;
+
 
 // STYLING FUNCTIONS FOR RAW GEOJSON DATA //
 function censusTractStyle(feature) {
@@ -8,11 +34,11 @@ function censusTractStyle(feature) {
     fillColor: getTractColor(feature.properties.canrate),
     weight: 0.5,             
     color: '#666666',        
-    opacity: 1,              
-    fillOpacity: 1      
+    opacity: .65,              
+    fillOpacity: .65      
   }
 }
-
+ 
 function getTractColor(rate) {
   return  rate > 0.61 ? `#08519c` :
           rate > 0.39 ? `#3182bd` :
@@ -23,11 +49,12 @@ function getTractColor(rate) {
 
 function wellStyle(feature) {
   return {
-    radius: 6,
+    pane: 'wellPane',
+    radius: 4,
     fillColor: getWellColor(feature.properties.nitr_ran),
     color: '#333',          // Circle border
     weight: 0.5,
-    opacity: 1,
+    opacity: .85,
     fillOpacity: 0.85
   }
 }
@@ -41,10 +68,15 @@ function getWellColor(ppm) {
 
 }
 
+// LAYER CONTROL //
+
+//LayerGroups to store raw GEOJSON
+const cancerTractsLayer = L.layerGroup();
+const wellsLayer = L.layerGroup();
 
 // LOADING IN RAW GEOJSON DATA //
 
-// Load census tract cancer geojson layer
+// Load census tract cancer rate geojson layer
 fetch('/static/raw_geojson/cancer_tracts.geojson')
   .then(res => res.json())
   .then(data => {
@@ -55,7 +87,7 @@ fetch('/static/raw_geojson/cancer_tracts.geojson')
         const truncatedRate = Math.floor(rawRate * 100) / 100;
         layer.bindPopup(`Cancer rate: ${truncatedRate}%`);
       }
-    }).addTo(map);
+    }).addTo(cancerTractsLayer);
   });
 
 // Load wells geojson layer
@@ -72,8 +104,32 @@ fetch('/static/raw_geojson/well_nitrate.geojson')
         const truncatedRate = Math.floor(rawRate * 100) / 100;
         layer.bindPopup(`Nitrate level: ${truncatedRate} ppm`);
       }
-    }).addTo(map);
+    }).addTo(wellsLayer);
   });
+
+  
+  // MORE LAYER CONTROL //
+
+  //Raw GEOJSON files added to map by default
+  cancerTractsLayer.addTo(map);
+  wellsLayer.addTo(map);
+
+  const baseMaps = {
+  "Grey": grey,
+  "Satellite": satellite,
+  "Stamen": stadia
+};
+
+const overlayMaps = {
+  "Cancer Tracts": cancerTractsLayer,
+  "Nitrate Wells": wellsLayer
+};
+
+L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
+
+
+
+
 
 
 
