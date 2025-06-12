@@ -109,13 +109,13 @@ fetch('/static/raw_geojson/well_nitrate.geojson')
   });
 
   
-  // MORE LAYER CONTROL //
+// MORE LAYER CONTROL //
 
-  //Raw GEOJSON files added to map by default
-  cancerTractsLayer.addTo(map);
-  wellsLayer.addTo(map);
+//Raw GEOJSON files added to map by default
+cancerTractsLayer.addTo(map);
+wellsLayer.addTo(map);
 
-  const baseMaps = {
+const baseMaps = {
   "Grey": grey,
   "Satellite": satellite,
   "Stamen": stadia
@@ -125,6 +125,8 @@ const overlayMaps = {
   "Cancer Tracts": cancerTractsLayer,
   "Nitrate Wells": wellsLayer
 };
+
+const sidebar = L.control.sidebar({ container: 'sidebar' }).addTo(map);
 
 L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
 
