@@ -29,6 +29,7 @@ map.getPane('wellPane').style.zIndex = 650;
 
 
 // STYLING FUNCTIONS FOR RAW GEOJSON DATA //
+
 function censusTractStyle(feature) {
   return {
     fillColor: getTractColor(feature.properties.canrate),
