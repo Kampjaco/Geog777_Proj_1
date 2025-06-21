@@ -11,39 +11,64 @@
 
   <!-- Leaflet and Leaflet Sidebar CSS -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css"/>
-  <link rel="stylesheet" href="https://unpkg.com/leaflet-sidebar-v2/css/leaflet-sidebar.min.css" />
+  <link rel="stylesheet" href="https://noerw.github.io/leaflet-sidebar-v2/css/leaflet-sidebar.min.css" />
+  <link rel="stylesheet" href="https://noerw.github.io/leaflet-sidebar-v2/css/leaflet-sidebar.css" />
 
   <!-- Bootstrap CSS -->
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" />
+
+  <!-- Font -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:ital,wght@0,100..900;1,100..900&display=swap" rel="stylesheet">
+  
 </head>
 
 <!-- HTML PAGE -->
 
 <body>
 
-  <!-- Title Bar -->
+<!-- Title Bar -->
   <div class="app-title d-flex align-items-center justify-content-between">
-    <span>Yo</span>
-    <button class="btn btn-outline-light btn-sm" onclick="sidebar.toggle()">☰ Menu</button>
+    <span>Relating Cancer Rates to Nitrate Levels from Wells in Wisconsin</span>
   </div>
 
   <div id="sidebar" class="leaflet-sidebar collapsed">
-    <div class="leaflet-sidebar-tabs">
-      <ul role="tablist">
-        <li><a href="#home" role="tab"><i class="fa fa-bars"></i></a></li>
-      </ul>
-    </div>
-    <div class="leaflet-sidebar-content">
-      <div class="leaflet-sidebar-pane" id="home">
-        <h1 class="leaflet-sidebar-header">Menu
-          <span class="leaflet-sidebar-close"><i class="fa fa-times"></i></span>
-        </h1>
-        <p>Layer controls, filters, or results here.</p>
+      <!-- Nav tabs -->
+      <div class="leaflet-sidebar-tabs">
+          <ul role="tablist"> <!-- top aligned tabs -->
+              <li><a href="#home" role="tab"><i class="fa fa-bars" id="home"></i></a></li>
+          </ul>
       </div>
-    </div>
+
+      <!-- Tab panes -->
+      <div class="leaflet-sidebar-content">
+          <div class="leaflet-sidebar-pane" id="home">
+              <h1 class="leaflet-sidebar-header">
+                  Information about the application
+                  <div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div>
+              </h1>
+              <p class="description">Text about how to use application and how to interpret results</p>
+              <br>
+              <label for="coeff" class="description">Decay Distance Coefficient</label><br>
+              <input
+                type="text"
+                id="coeff"
+                name="coeff"
+                size="25"
+              />
+              <br><br>
+              <button onclick="submitCoeff()">Submit</button>
+
+              <br><br><br>
+
+              <h2>Results</h2>
+              <p class="description">
+                Linear regression equation
+              </p>
+          </div>
+      </div>
   </div>
-
-
 
   <div id="map"></div>
 

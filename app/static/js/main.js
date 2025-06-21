@@ -53,7 +53,7 @@ function wellStyle(feature) {
     pane: 'wellPane',
     radius: 4,
     fillColor: getWellColor(feature.properties.nitr_ran),
-    color: '#333',          // Circle border
+    color: '#333',          
     weight: 0.5,
     opacity: .85,
     fillOpacity: 0.85
@@ -108,7 +108,55 @@ fetch('/static/raw_geojson/well_nitrate.geojson')
     }).addTo(wellsLayer);
   });
 
-  
+
+// CREATING LEGENDS //
+const tractLegend = L.control({ position: 'bottomright' });
+
+tractLegend.onAdd = function (map) {
+  const div = L.DomUtil.create('div', 'info legend');
+  const grades = [0,0.08, 0.22, 0.39, 0.61];
+  const labels = [];
+
+  div.innerHTML = '<strong>Cancer Rate %</strong><br>';
+
+  for (let i = 0; i < grades.length; i++) {
+    const from = grades[i];
+    const to = grades[i + 1];
+
+    div.innerHTML +=
+      `<i style="background:${getTractColor(from + 0.001)}"></i> ` +
+      `${from}${to ? `–${to}` : '+'}<br>`;
+  }
+
+  return div;
+};
+
+tractLegend.addTo(map);
+
+
+const wellLegend = L.control({ position: 'bottomright' });
+
+wellLegend.onAdd = function (map) {
+  const div = L.DomUtil.create('div', 'info legend');
+  const ppm = [-1.89, 1.16, 3.40, 6.32, 11.05];
+
+  div.innerHTML = '<strong>Nitrate (ppm)</strong><br>';
+
+  for (let i = 0; i < ppm.length; i++) {
+    const from = ppm[i];
+    const to = ppm[i + 1];
+
+    div.innerHTML +=
+      `<i style="background:${getWellColor(from + 0.001)}"></i> ` +
+      `${from}${to ? `–${to}` : '+'}<br>`;
+  }
+
+  return div;
+};
+
+wellLegend.addTo(map);
+
+
 // MORE LAYER CONTROL //
 
 //Raw GEOJSON files added to map by default
@@ -126,7 +174,18 @@ const overlayMaps = {
   "Nitrate Wells": wellsLayer
 };
 
-const sidebar = L.control.sidebar({ container: 'sidebar' }).addTo(map);
+
+//Add sidebar
+var sidebar = L.control.sidebar({
+    autopan: false,       // whether to maintain the centered map point when opening the sidebar
+    closeButton: true,    // whether t add a close button to the panes
+    container: 'sidebar', // the DOM container or #ID of a predefined sidebar container that should be used
+    position: 'left',     // left or right
+}).addTo(map);
+
+setTimeout(function() {
+  sidebar.open('home');
+}, 500);
 
 L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
 

@@ -1,7 +1,9 @@
+/* Map Styling */
 #map { 
-    height: 100vh; 
+    height: 94vh; 
 }
 
+/* Title Styling */
 .app-title {
     background: #343a40;
     color: white;
@@ -9,3 +11,50 @@
     font-size: 1.5rem;
     font-weight: bold;
 }
+
+/* Sidebar Styling */
+.leaflet-sidebar {
+    height: 92vh;
+}
+
+.leaflet-sidebar-content {
+ font-family: 'Montserrat', sans-serif;
+}
+
+.description {
+    font-size: 16px;
+}
+
+button {
+  font-size: 46px;
+  width: 25ch;
+  padding: 10px 20px;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: gray;
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+button:hover {
+  background-color: #e0e0e0;
+}
+
+/* Legend Styling */
+.info.legend {
+  background: white;
+  padding: 8px 12px;
+  font: 14px 'Inter', sans-serif;
+  box-shadow: 0 0 15px rgba(0,0,0,0.2);
+  border-radius: 5px;
+  line-height: 24px;
+}
+
+.info.legend i {
+  width: 18px;
+  height: 18px;
+  float: left;
+  margin-right: 8px;
+  opacity: 0.85;
+}
+
