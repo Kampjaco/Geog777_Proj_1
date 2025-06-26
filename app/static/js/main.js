@@ -27,7 +27,7 @@ const map = L.map('map', {
 map.createPane('wellPane');
 map.getPane('wellPane').style.zIndex = 650;
 
-
+//////////////////////////////////////////////////////////////////////////////////
 // STYLING FUNCTIONS FOR RAW GEOJSON DATA //
 
 function censusTractStyle(feature) {
@@ -69,16 +69,33 @@ function getWellColor(ppm) {
 
 }
 
+function getIDWColor(val) {
+
+  return  val > 10.985 ? '#01665e'  :
+          val > 7.391 ? '#35978f'   :
+          val > 5.199 ? '#80cdc1'   :
+          val > 3.862 ? '#c7eae5'   :
+          val > 3.047 ? '#f5f5f5'   :
+          val > 2.550 ? '#f6e8c3'   :
+          val > 1.735 ? '#dfc27d'   :
+          val > 0.399 ? '#bf812d'   :
+                        '#8c510a'   ;
+          
+}
+
+//////////////////////////////////////////////////////////////////////////////////
 // LAYER CONTROL //
 
 //LayerGroups to store raw GEOJSON
 const cancerTractsLayer = L.layerGroup();
 const wellsLayer = L.layerGroup();
+const idwLayer = L.layerGroup();
 
+//////////////////////////////////////////////////////////////////////////////////
 // LOADING IN RAW GEOJSON DATA //
 
 // Load census tract cancer rate geojson layer
-fetch('/static/raw_geojson/cancer_tracts.geojson')
+fetch('/static/raw_files/cancer_tracts.geojson')
   .then(res => res.json())
   .then(data => {
     L.geoJSON(data, {
@@ -92,7 +109,7 @@ fetch('/static/raw_geojson/cancer_tracts.geojson')
   });
 
 // Load wells geojson layer
-fetch('/static/raw_geojson/well_nitrate.geojson')
+fetch('/static/raw_files/well_nitrate.geojson')
   .then(res => res.json())
   .then(data => {
     L.geoJSON(data, {
@@ -108,8 +125,9 @@ fetch('/static/raw_geojson/well_nitrate.geojson')
     }).addTo(wellsLayer);
   });
 
-
+//////////////////////////////////////////////////////////////////////////////////
 // CREATING LEGENDS //
+
 const tractLegend = L.control({ position: 'bottomright' });
 
 tractLegend.onAdd = function (map) {
@@ -156,7 +174,33 @@ wellLegend.onAdd = function (map) {
 
 wellLegend.addTo(map);
 
+//Adds and removes legends when layers are added/removed
+map.on('overlayadd', function(e) {
+  if (e.name === 'Cancer Tracts') {
+    tractLegend.addTo(map);
+  }
+});
 
+map.on('overlayremove', function(e) {
+  if (e.name === 'Cancer Tracts') {
+    map.removeControl(tractLegend);
+  }
+});
+
+map.on('overlayadd', function(e) {
+  if (e.name === 'Nitrate Wells') {
+    wellLegend.addTo(map);
+  }
+});
+
+map.on('overlayremove', function(e) {
+  if (e.name === 'Nitrate Wells') {
+    map.removeControl(wellLegend);
+  }
+});
+
+
+//////////////////////////////////////////////////////////////////////////////////
 // MORE LAYER CONTROL //
 
 //Raw GEOJSON files added to map by default
@@ -189,18 +233,40 @@ setTimeout(function() {
 
 L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
 
+//////////////////////////////////////////////////////////////////////////////////
+// PERFORMING ANALYSIS //
 
+function submitCoeff() {
 
+  decay_coefficient = document.getElementById("coeff").value;
 
+  fetch('/call_idw', {
+    method: 'POST',
+    headers: { 
+      'Content-Type' : 'application/json' 
+    },
+    body: JSON.stringify({ decay: decay_coefficient })
+  })
+  .then(response => response.json())
+  .then(data => {
+    addGeoTIFFToMap(data.raster_url);
+  });
+}
 
-
-
-
-
-
-
-// fetch('/run-analysis')
-//   .then(res => res.json())
-//   .then(data => {
-//     L.geoJSON(data).addTo(map);
-//   });
+//Adds IDW layer to map
+function addGeoTIFFToMap(tiffUrl) {
+  fetch(tiffUrl)
+    .then(response => response.arrayBuffer())
+    .then(arrayBuffer => parseGeoraster(arrayBuffer))
+    .then(georaster => {
+      const layer = new GeoRasterLayer({
+        georaster: georaster,
+        pixelValuesToColorFn: values => {
+          const val = values[0]; // Single-band raster
+          return getIDWColor(val);
+        },
+      });
+      resolution: 128
+      map.addLayer(layer);
+    });
+}
