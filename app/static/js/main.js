@@ -215,7 +215,8 @@ const baseMaps = {
 
 const overlayMaps = {
   "Cancer Tracts": cancerTractsLayer,
-  "Nitrate Wells": wellsLayer
+  "Nitrate Wells": wellsLayer,
+  "IDW": idwLayer
 };
 
 
@@ -267,6 +268,6 @@ function addGeoTIFFToMap(tiffUrl) {
         },
       });
       resolution: 128
-      map.addLayer(layer);
-    });
+    })
+    .addTo(idwLayer);
 }
