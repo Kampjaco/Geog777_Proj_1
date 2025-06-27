@@ -10,7 +10,7 @@ def index():
     return render_template( 'index.html')
 
 
-##Route that will be called to perform analysis
+##IDW Route
 @app.route("/call_idw", methods=['POST'])
 def call_idw_route():
     try:
@@ -25,7 +25,9 @@ def call_idw_route():
     except Exception as e:
         return jsonify({ "message": f"Error during IDW: {str(e)}" }), 500
 
-
-#     @app.route('/run_analysis')
-# def run_analysis():
-#     idw = perform_idw()
+@app.route("/call_zonal", methods=['POST'])
+def call_zonal_route():
+    try:
+        data = request.get_json
+    except Exception as e:
+        return

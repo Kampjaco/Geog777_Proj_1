@@ -274,6 +274,7 @@ function submitCoeff() {
 
   decay_coefficient = document.getElementById("coeff").value;
 
+  //IDW
   fetch('/call_idw', {
     method: 'POST',
     headers: { 
@@ -285,6 +286,12 @@ function submitCoeff() {
   .then(data => {
     addGeoTIFFToMap(data.raster_url);
   });
+
+  //Zonal stats
+  fetch('/call_zonal', {
+    method: 'POST'
+  })
+  .then(response => response.json())
 
   updateLayerGroups();
 }
