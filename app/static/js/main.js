@@ -86,7 +86,6 @@ function getIDWColor(val) {
 //////////////////////////////////////////////////////////////////////////////////
 // LAYER CONTROL //
 
-//LayerGroups to store raw GEOJSON
 const cancerTractsLayer = L.layerGroup();
 const wellsLayer = L.layerGroup();
 const idwLayer = L.layerGroup();
@@ -148,7 +147,6 @@ tractLegend.onAdd = function (map) {
 
   return div;
 };
-
 tractLegend.addTo(map);
 
 
@@ -171,8 +169,35 @@ wellLegend.onAdd = function (map) {
 
   return div;
 };
-
 wellLegend.addTo(map);
+
+//Creates IDW legend
+const idwLegend = L.control({ position: 'bottomright' });
+
+idwLegend.onAdd = function (map) {
+  const div = L.DomUtil.create('div', 'info legend');
+  div.innerHTML += '<strong>Nitrate (ppm)</strong><br>';
+
+  const grades = [
+    { min: 10.985, label: '> 10.985' },
+    { min: 7.391,  label: '7.391 - 10.985' },
+    { min: 5.199,  label: '5.199 - 7.391' },
+    { min: 3.862,  label: '3.862 - 5.199' },
+    { min: 3.047,  label: '3.047 - 3.862' },
+    { min: 2.550,  label: '2.550 - 3.047' },
+    { min: 1.735,  label: '1.735 - 2.550' },
+    { min: 0.399,  label: '0.399 - 1.735' },
+    { min: -Infinity, label: '≤ 0.399' }
+  ];
+
+  grades.forEach(entry => {
+    const color = getIDWColor(entry.min + 0.001);
+    div.innerHTML +=
+      `<i style="background:${color}; width: 20px; height: 12px; display: inline-block; margin-right: 6px;"></i> ${entry.label}<br>`;
+  });
+
+  return div;
+};
 
 //Adds and removes legends when layers are added/removed
 map.on('overlayadd', function(e) {
@@ -199,6 +224,15 @@ map.on('overlayremove', function(e) {
   }
 });
 
+//Adds legend if IDW layer is triggered
+map.on('overlayadd', function (e) {
+  if (e.name === 'IDW') idwLegend.addTo(map);
+});
+
+map.on('overlayremove', function (e) {
+  if (e.name === 'IDW') map.removeControl(idwLegend);
+});
+
 
 //////////////////////////////////////////////////////////////////////////////////
 // MORE LAYER CONTROL //
@@ -215,8 +249,7 @@ const baseMaps = {
 
 const overlayMaps = {
   "Cancer Tracts": cancerTractsLayer,
-  "Nitrate Wells": wellsLayer,
-  "IDW": idwLayer
+  "Nitrate Wells": wellsLayer
 };
 
 
@@ -232,7 +265,7 @@ setTimeout(function() {
   sidebar.open('home');
 }, 500);
 
-L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
+const layerControl = L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
 
 //////////////////////////////////////////////////////////////////////////////////
 // PERFORMING ANALYSIS //
@@ -252,6 +285,8 @@ function submitCoeff() {
   .then(data => {
     addGeoTIFFToMap(data.raster_url);
   });
+
+  updateLayerGroups();
 }
 
 //Adds IDW layer to map
@@ -262,12 +297,38 @@ function addGeoTIFFToMap(tiffUrl) {
     .then(georaster => {
       const layer = new GeoRasterLayer({
         georaster: georaster,
+        resolution: 128,
         pixelValuesToColorFn: values => {
-          const val = values[0]; // Single-band raster
+          const val = values[0]; 
           return getIDWColor(val);
-        },
+        }
       });
-      resolution: 128
-    })
-    .addTo(idwLayer);
+
+
+      // Clear old raster, add new one
+      idwLayer.clearLayers();
+      idwLayer.addLayer(layer);
+    });
 }
+
+//Updates layer groups to include IDW and regression layers
+function updateLayerGroups() {
+
+  const baseMaps = {
+    "Grey": grey,
+    "Satellite": satellite,
+    "Stamen": stadia
+  };
+
+  const overlayMaps = {
+    "Cancer Tracts": cancerTractsLayer,
+    "Nitrate Wells": wellsLayer,
+    "IDW": idwLayer
+  };
+
+  //Removes old layer control and adds new one with IDW and regression layers
+  map.removeControl(layerControl);
+  L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
+}
+
+
