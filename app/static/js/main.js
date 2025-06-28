@@ -89,6 +89,7 @@ function getIDWColor(val) {
 const cancerTractsLayer = L.layerGroup();
 const wellsLayer = L.layerGroup();
 const idwLayer = L.layerGroup();
+const glrLayer = L.layerGroup();
 
 //////////////////////////////////////////////////////////////////////////////////
 // LOADING IN RAW GEOJSON DATA //
@@ -288,10 +289,13 @@ function submitCoeff() {
   });
 
   //Zonal stats
-  fetch('/call_zonal', {
+  fetch('/call_zonal_regression', {
     method: 'POST'
   })
-  .then(response => response.json())
+    .then(res => res.json())
+    .then(data => {
+      addGLRToMap(data.geojson_url)
+    })
 
   updateLayerGroups();
 }
@@ -302,7 +306,7 @@ function addGeoTIFFToMap(tiffUrl) {
     .then(response => response.arrayBuffer())
     .then(arrayBuffer => parseGeoraster(arrayBuffer))
     .then(georaster => {
-      const layer = new GeoRasterLayer({
+      const idw_raster = new GeoRasterLayer({
         georaster: georaster,
         resolution: 128,
         pixelValuesToColorFn: values => {
@@ -311,11 +315,39 @@ function addGeoTIFFToMap(tiffUrl) {
         }
       });
 
-
       // Clear old raster, add new one
       idwLayer.clearLayers();
-      idwLayer.addLayer(layer);
+      idwLayer.addLayer(idw_raster);
     });
+}
+
+function addGLRToMap(glrUrl) {
+  fetch(glrUrl)
+        .then(res => res.json())
+        .then(geojson => {
+          const glr_json = new L.geoJSON(geojson, {
+             style: feature => ({
+              color: "#3182bd",
+              weight: 1,
+              fillOpacity: 0.5
+            }),
+            onEachFeature: (feature, layer) => {
+              const p = feature.properties;
+              layer.bindPopup(`
+                <strong>Tract:</strong> ${p.GEOID10}<br>
+                <strong>Observed:</strong> ${p.canrate}<br>
+                <strong>Predicted:</strong> ${p.PREDICTED?.toFixed(2)}<br>
+                <strong>Residual:</strong> ${p.RESIDUAL?.toFixed(2)}
+              `)
+            }
+
+          
+          })
+          console.log(geojson)
+          // //Clear old GLR, add new one
+          glrLayer.clearLayers();
+          glrLayer.addLayer(glr_json);
+        })
 }
 
 //Updates layer groups to include IDW and regression layers
@@ -330,7 +362,8 @@ function updateLayerGroups() {
   const overlayMaps = {
     "Cancer Tracts": cancerTractsLayer,
     "Nitrate Wells": wellsLayer,
-    "IDW": idwLayer
+    "IDW": idwLayer,
+    "GLR": glrLayer
   };
 
   //Removes old layer control and adds new one with IDW and regression layers

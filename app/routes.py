@@ -1,6 +1,7 @@
 from flask import render_template, jsonify, request
 from app import app
 from app.call_idw import perform_idw
+from app.call_zonal_regression import perform_zonal, perform_regression
 
 
 
@@ -25,9 +26,15 @@ def call_idw_route():
     except Exception as e:
         return jsonify({ "message": f"Error during IDW: {str(e)}" }), 500
 
-@app.route("/call_zonal", methods=['POST'])
-def call_zonal_route():
+@app.route("/call_zonal_regression", methods=['POST'])
+def call_zonal_regression_route():
     try:
-        data = request.get_json
+        perform_zonal()
+        regression_path = perform_regression()
+
+        return jsonify({
+            "message": "success",
+            "geojson_url": regression_path
+        })
     except Exception as e:
-        return
+        return jsonify({"message": "error", "message": str(e)}), 500
