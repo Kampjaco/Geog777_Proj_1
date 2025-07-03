@@ -69,18 +69,17 @@ function getWellColor(ppm) {
 
 }
 
+let idwBreaks = [];
 function getIDWColor(val) {
 
-  return  val > 10.985 ? '#01665e'  :
-          val > 7.391 ? '#35978f'   :
-          val > 5.199 ? '#80cdc1'   :
-          val > 3.862 ? '#c7eae5'   :
-          val > 3.047 ? '#f5f5f5'   :
-          val > 2.550 ? '#f6e8c3'   :
-          val > 1.735 ? '#dfc27d'   :
-          val > 0.399 ? '#bf812d'   :
-                        '#8c510a'   ;
-          
+  if (val <= idwBreaks[1]) return '#8c510a';
+  else if (val <= idwBreaks[2]) return '#bf812d';
+  else if (val <= idwBreaks[3]) return '#dfc27d';
+  else if (val <= idwBreaks[4]) return '#f6e8c3';
+  else if (val <= idwBreaks[5]) return '#c7eae5';
+  else if (val <= idwBreaks[6]) return '#80cdc1';
+  else return '#35978f';
+
 }
 
 function glrStyle(feature) {
@@ -166,7 +165,7 @@ tractLegend.onAdd = function (map) {
   const grades = [0,0.08, 0.22, 0.39, 0.61];
   const labels = [];
 
-  div.innerHTML = '<strong>Cancer Rate %</strong><br>';
+  div.innerHTML = '<strong>Cancer Rate</strong><br>';
 
   for (let i = 0; i < grades.length; i++) {
     const from = grades[i];
@@ -188,7 +187,7 @@ wellLegend.onAdd = function (map) {
   const div = L.DomUtil.create('div', 'info legend');
   const ppm = [-1.89, 1.16, 3.40, 6.32, 11.05];
 
-  div.innerHTML = '<strong>Nitrate (ppm)</strong><br>';
+  div.innerHTML = '<strong>Nitrate Levels (ppm)</strong><br>';
 
   for (let i = 0; i < ppm.length; i++) {
     const from = ppm[i];
@@ -203,48 +202,44 @@ wellLegend.onAdd = function (map) {
 };
 wellLegend.addTo(map);
 
-//Creates IDW legend
-const idwLegend = L.control({ position: 'bottomright' });
+let idwLegend;
+function createIDWLegend(breaks) {
+  if (idwLegend) {
+    map.removeControl(idwLegend);
+  }
 
-idwLegend.onAdd = function (map) {
-  const div = L.DomUtil.create('div', 'info legend');
-  div.innerHTML += '<strong>Nitrate (ppm)</strong><br>';
+  idwLegend = L.control({ position: 'bottomright' });
 
-  const grades = [
-    { min: 10.985, label: '> 10.985' },
-    { min: 7.391,  label: '7.391 - 10.985' },
-    { min: 5.199,  label: '5.199 - 7.391' },
-    { min: 3.862,  label: '3.862 - 5.199' },
-    { min: 3.047,  label: '3.047 - 3.862' },
-    { min: 2.550,  label: '2.550 - 3.047' },
-    { min: 1.735,  label: '1.735 - 2.550' },
-    { min: 0.399,  label: '0.399 - 1.735' },
-    { min: -Infinity, label: '≤ 0.399' }
-  ];
+  idwLegend.onAdd = function (map) {
+    const div = L.DomUtil.create('div', 'info legend');
+    div.innerHTML = '<strong>Interpolated Nitrate Levels (ppm)</strong><br>';
 
-  grades.forEach(entry => {
-    const color = getIDWColor(entry.min + 0.001);
-    div.innerHTML +=
-      `<i style="background:${color}; width: 20px; height: 12px; display: inline-block; margin-right: 6px;"></i> ${entry.label}<br>`;
-  });
+    for (let i = 0; i < breaks.length - 1; i++) {
+      const from = breaks[i].toFixed(2);
+      const to = breaks[i + 1].toFixed(2);
+      const mid = (breaks[i] + breaks[i + 1]) / 2;
 
-  return div;
-};
+      div.innerHTML +=
+        `<i style="background:${getIDWColor(mid)}"></i> ${from}–${to}<br>`;
+    }
+
+    return div;
+  }
+}
 
 const glrLegend = L.control({ position: 'bottomright' });
 
 glrLegend.onAdd = function (map) {
   const div = L.DomUtil.create('div', 'info legend');
   const grades = [
-    { min: -2.51, label: '< -2.5 Std. Dev. (underprediction)' },
+    { min: -2.51, label: '< -2.5 Std. Dev. (overprediction)' },
     { min: -2.5,  label: '-2.5 Std. Dev. - -1.5 Std. Dev.' },
     { min: -1.5,  label: '-1.5 Std. Dev - -0.5 Std. Dev.' },
     { min: -0.5,  label: '-0.5 Std. Dev. - 0.5 Std. Dev.' },
     { min: 0.5,  label: '0.5 Std. Dev. - 1.5 Std. Dev.' },
     { min: 1.5,  label: '1.5 Std. Dev. - 2.5 Std. Dev.' },
-    { min: 2.5,  label: '> 2.5 Std. Dev. (overprediction)' }
+    { min: 2.5,  label: '> 2.5 Std. Dev. (underprediction)' }
   ];
-
   
   div.innerHTML = '<strong>Standardized Residuals</strong><br>';
 
@@ -341,6 +336,11 @@ function submitCoeff() {
 
   const decay_coefficient = document.getElementById("coeff").value;
 
+  if(decay_coefficient <= 1) {
+    alert("Distance Decay Coefficient must be greater than 1");
+    return
+  }
+
   // Start both requests in parallel
   const idwPromise = fetch('/call_idw', {
     method: 'POST',
@@ -356,13 +356,44 @@ function submitCoeff() {
   }).then(res => res.json())
     .then(data => {
       // Return a promise from addGLRToMap
+      displayGLRStats(data.glr_stats)
       return addGLRToMap(data.geojson_url); 
     });
 
   // Wait until both are complete before updating the layers
   Promise.all([idwPromise, glrPromise]).then(() => {
+    alert("Analysis successful!  Toggle additional layers on top right portion of screen.")
     updateLayerGroups();
   });
+}
+
+//Displays GLR stats
+function displayGLRStats(stats) {
+  
+  const r2 = extractR2(stats)
+
+  const container = document.getElementById("equation");
+
+  container.innerHTML = `
+    <strong>R Squared Value</strong><br>
+    ${r2}<br>
+    <span style="font-size: 14px;">R Squared values closer to 1 indicate a stronger relationship between nitrate levels and and cancer rate.</span>
+  `
+}
+
+function extractR2(text) {
+
+  let r2Line = text
+    .split('\n')
+    .find(line => line.includes("Multiple R-Squared"));
+
+  console.log(r2Line)
+
+  r2Line = r2Line.replaceAll(' ', '')
+  r2Line = r2Line.substring(20,28)
+  return r2Line
+
+  
 }
 
 //Adds IDW layer to map
@@ -371,6 +402,16 @@ function addGeoTIFFToMap(tiffUrl) {
     .then(response => response.arrayBuffer())
     .then(arrayBuffer => parseGeoraster(arrayBuffer))
     .then(georaster => {
+      //For dynamically creating IDW legend
+      const min = georaster.mins[0];
+      const max = georaster.maxs[0];
+
+      idwBreaks = [];
+      const steps = 7;
+      for (let i = 0; i <= steps; i++) {
+        idwBreaks.push(min + i * (max - min) / steps);
+      }
+
       const idw_raster = new GeoRasterLayer({
         georaster: georaster,
         resolution: 128,
@@ -383,6 +424,9 @@ function addGeoTIFFToMap(tiffUrl) {
       // Clear old raster, add new one
       idwLayer.clearLayers();
       idwLayer.addLayer(idw_raster);
+
+      // Add dynamic legend
+      createIDWLegend(idwBreaks);
     });
 }
 
@@ -424,6 +468,7 @@ function updateLayerGroups() {
   layerControl = L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
   cancerTractsLayer.remove();
   wellsLayer.remove();
+  idwLayer.remove();
   map.addLayer(glrLayer);
 
 }

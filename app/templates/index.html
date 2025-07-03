@@ -36,8 +36,8 @@
   <div id="sidebar" class="leaflet-sidebar collapsed">
       <!-- Nav tabs -->
       <div class="leaflet-sidebar-tabs">
-          <ul role="tablist"> <!-- top aligned tabs -->
-              <li><a href="#home" role="tab"><i class="fa fa-bars" id="home"></i></a></li>
+          <ul role="tablist"> 
+              <li><a href="#home" role="tab"><i class="fa fa-bars" id="home"><img src="static/css/hamburger.png" style="width:20px; height:20px;"></img></i></a></li>
           </ul>
       </div>
 
@@ -48,7 +48,15 @@
                   Information about the application
                   <div class="leaflet-sidebar-close"><i class="fa fa-caret-left"></i></div>
               </h1>
-              <p class="description">Text about how to use application and how to interpret results</p>
+              <p class="description" style="margin-top: 2ch;">
+                This application highlights the relationship between cancer rate and nitrate level for census tracts in Wisconsin.<br>
+                This is accomplished using Inverse Distance Weighting (IDW), Zonal Statistics, and Generalized Linear Regression (GLR).<br>
+                Users can input the Distance Decay Coefficient, which changes the analysis by decreasing the influence of distant points.<br>
+                The higher the coefficient, the lower the influence.<br>  
+                The most reasonable results will be obtained from a Distance Decay coefficient
+                ranging from 1 - 3.
+
+              </p>
               <br>
               <label for="coeff" class="description">Decay Distance Coefficient</label><br>
               <input
@@ -63,8 +71,7 @@
               <br><br><br>
 
               <h2>Results</h2>
-              <p class="description">
-                Linear regression equation
+              <p class="description" id="equation">
               </p>
           </div>
       </div>

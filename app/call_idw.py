@@ -9,6 +9,7 @@ def perform_idw(decay):
     project_root = os.path.dirname(os.path.abspath(__file__))
     data_folder = os.path.join(project_root, "static", "raw_files")
     arcpy.env.workspace = data_folder
+    arcpy.env.scratchWorkspace = "in_memory"
 
     ##Set local variables
     inPointFeatures = "nitrate_wells.shp"

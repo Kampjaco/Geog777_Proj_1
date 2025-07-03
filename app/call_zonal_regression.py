@@ -37,22 +37,18 @@ def perform_regression():
     output_glr = os.path.join(project_root, "static", "final_files", "output_glr.shp")
     geojson_path = os.path.join(project_root, "static", "final_files", "output_glr.geojson")
 
-    print("before add join")
-
     try:
-        arcpy.management.MakeFeatureLayer(tracts, "tracts_layer")
+        arcpy.management.MakeFeatureLayer(tracts, "in_memory/tracts_layer")
 
         arcpy.management.AddJoin(
-            in_layer_or_view="tracts_layer",
+            in_layer_or_view="in_memory/tracts_layer",
             in_field="GEOID10",
             join_table=stats_table,
             join_field="GEOID10"
         )
 
-        fields = arcpy.ListFields("tracts_layer")
-
         arcpy.management.CalculateField(
-            in_table="tracts_layer",
+            in_table="in_memory/tracts_layer",
             field="idw_mean",
             expression="!tracts_nitrate_stats.MEAN!",
             expression_type="PYTHON3"
@@ -67,6 +63,8 @@ def perform_regression():
             explanatory_variables="idw_mean"
         )
 
+        glr_stats = arcpy.GetMessages()
+
         arcpy.conversion.FeaturesToJSON(
             in_features=output_glr,
             out_json_file=geojson_path,
@@ -76,7 +74,7 @@ def perform_regression():
     except Exception as e:
         print(e)
 
-    return "/static/final_files/output_glr.geojson"
+    return "/static/final_files/output_glr.geojson", glr_stats
 
 
 

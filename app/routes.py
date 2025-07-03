@@ -30,11 +30,12 @@ def call_idw_route():
 def call_zonal_regression_route():
     try:
         perform_zonal()
-        regression_path = perform_regression()
+        regression_path, stats = perform_regression()
 
         return jsonify({
             "message": "success",
-            "geojson_url": regression_path
+            "geojson_url": regression_path,
+            "glr_stats": stats
         })
     except Exception as e:
         return jsonify({"message": "error", "message": str(e)}), 500
