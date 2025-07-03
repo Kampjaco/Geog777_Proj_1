@@ -83,6 +83,37 @@ function getIDWColor(val) {
           
 }
 
+function glrStyle(feature) {
+
+  return {
+    fillColor: getGLRColor(feature.properties.STDRESID),
+    weight: 1,             
+    color: '#B2B2B2',        
+    opacity: 1,              
+    fillOpacity: 1      
+  }
+}
+
+function getGLRColor(val) {
+
+  return  val <= -2.5 ? '#2D004B' :
+          val <= -1.5 ? '#715AA0' :
+          val <= -0.5 ? '#BFBBDA' :
+          val <= 0.5  ? '#F7F7F7' :
+          val <= 1.5  ? '#C7EAE5' :
+          val <= 2.5  ? '#5AB4AC' :
+                        '#01665E' ;
+}
+
+function onEachGLR(feature, layer) {
+
+  layer.bindPopup( `
+    <b>Nitrate Concentration:</b> ${Number(feature.properties.idw_mean)?.toFixed(2)} ppm  <br>
+    <b>Observed Cancer Rate:</b> ${Number(feature.properties.canrate)?.toFixed(2)} <br>
+    <b>Predicted Cancer Rate:</b> ${Number(feature.properties.PREDICTED)?.toFixed(2)} 
+  `)
+}
+
 //////////////////////////////////////////////////////////////////////////////////
 // LAYER CONTROL //
 
@@ -200,6 +231,33 @@ idwLegend.onAdd = function (map) {
   return div;
 };
 
+const glrLegend = L.control({ position: 'bottomright' });
+
+glrLegend.onAdd = function (map) {
+  const div = L.DomUtil.create('div', 'info legend');
+  const grades = [
+    { min: -2.51, label: '< -2.5 Std. Dev. (underprediction)' },
+    { min: -2.5,  label: '-2.5 Std. Dev. - -1.5 Std. Dev.' },
+    { min: -1.5,  label: '-1.5 Std. Dev - -0.5 Std. Dev.' },
+    { min: -0.5,  label: '-0.5 Std. Dev. - 0.5 Std. Dev.' },
+    { min: 0.5,  label: '0.5 Std. Dev. - 1.5 Std. Dev.' },
+    { min: 1.5,  label: '1.5 Std. Dev. - 2.5 Std. Dev.' },
+    { min: 2.5,  label: '> 2.5 Std. Dev. (overprediction)' }
+  ];
+
+  
+  div.innerHTML = '<strong>Standardized Residuals</strong><br>';
+
+  grades.forEach(entry => {
+    const color = getGLRColor(entry.min + 0.001);
+    div.innerHTML +=
+      `<i style="background:${color}; width: 18px; height: 18px; display: inline-block; margin-right: 6px;"></i> ${entry.label}<br>`;
+  });
+
+  return div;
+};
+
+
 //Adds and removes legends when layers are added/removed
 map.on('overlayadd', function(e) {
   if (e.name === 'Cancer Tracts') {
@@ -234,6 +292,14 @@ map.on('overlayremove', function (e) {
   if (e.name === 'IDW') map.removeControl(idwLegend);
 });
 
+map.on('overlayadd', function (e) {
+  if (e.name === 'GLR') glrLegend.addTo(map);
+});
+
+map.on('overlayremove', function (e) {
+  if (e.name === 'GLR') map.removeControl(glrLegend);
+});
+
 
 //////////////////////////////////////////////////////////////////////////////////
 // MORE LAYER CONTROL //
@@ -266,38 +332,37 @@ setTimeout(function() {
   sidebar.open('home');
 }, 500);
 
-const layerControl = L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
+let layerControl = L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
 
 //////////////////////////////////////////////////////////////////////////////////
 // PERFORMING ANALYSIS //
 
 function submitCoeff() {
 
-  decay_coefficient = document.getElementById("coeff").value;
+  const decay_coefficient = document.getElementById("coeff").value;
 
-  //IDW
-  fetch('/call_idw', {
+  // Start both requests in parallel
+  const idwPromise = fetch('/call_idw', {
     method: 'POST',
-    headers: { 
-      'Content-Type' : 'application/json' 
-    },
+    headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ decay: decay_coefficient })
-  })
-  .then(response => response.json())
-  .then(data => {
-    addGeoTIFFToMap(data.raster_url);
-  });
-
-  //Zonal stats
-  fetch('/call_zonal_regression', {
-    method: 'POST'
-  })
-    .then(res => res.json())
+  }).then(response => response.json())
     .then(data => {
-      addGLRToMap(data.geojson_url)
-    })
+      addGeoTIFFToMap(data.raster_url);
+    });
 
-  updateLayerGroups();
+  const glrPromise = fetch('/call_zonal_regression', {
+    method: 'POST'
+  }).then(res => res.json())
+    .then(data => {
+      // Return a promise from addGLRToMap
+      return addGLRToMap(data.geojson_url); 
+    });
+
+  // Wait until both are complete before updating the layers
+  Promise.all([idwPromise, glrPromise]).then(() => {
+    updateLayerGroups();
+  });
 }
 
 //Adds IDW layer to map
@@ -322,32 +387,19 @@ function addGeoTIFFToMap(tiffUrl) {
 }
 
 function addGLRToMap(glrUrl) {
-  fetch(glrUrl)
-        .then(res => res.json())
-        .then(geojson => {
-          const glr_json = new L.geoJSON(geojson, {
-             style: feature => ({
-              color: "#3182bd",
-              weight: 1,
-              fillOpacity: 0.5
-            }),
-            onEachFeature: (feature, layer) => {
-              const p = feature.properties;
-              layer.bindPopup(`
-                <strong>Tract:</strong> ${p.GEOID10}<br>
-                <strong>Observed:</strong> ${p.canrate}<br>
-                <strong>Predicted:</strong> ${p.PREDICTED?.toFixed(2)}<br>
-                <strong>Residual:</strong> ${p.RESIDUAL?.toFixed(2)}
-              `)
-            }
+  return fetch(glrUrl)
+    .then(res => res.json())
+    .then(geojson => {
+      const glr_json = new L.geoJSON(geojson, {
+        style: glrStyle,
+        onEachFeature: onEachGLR
+      });
 
-          
-          })
-          console.log(geojson)
-          // //Clear old GLR, add new one
-          glrLayer.clearLayers();
-          glrLayer.addLayer(glr_json);
-        })
+      glrLayer.clearLayers();
+      glrLayer.addLayer(glr_json);
+
+      return glr_json;
+    });
 }
 
 //Updates layer groups to include IDW and regression layers
@@ -366,9 +418,14 @@ function updateLayerGroups() {
     "GLR": glrLayer
   };
 
+
   //Removes old layer control and adds new one with IDW and regression layers
   map.removeControl(layerControl);
-  L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
+  layerControl = L.control.layers(baseMaps, overlayMaps, { collapsed: false }).addTo(map);
+  cancerTractsLayer.remove();
+  wellsLayer.remove();
+  map.addLayer(glrLayer);
+
 }
 
 

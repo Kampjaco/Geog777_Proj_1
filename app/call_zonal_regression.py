@@ -13,8 +13,6 @@ def perform_zonal():
     tracts = os.path.join(project_root,"static","raw_files", "census_tracts.shp")
     idw = os.path.join(project_root,"static", "final_files", "idw_output.tif")
     output_table = os.path.join(project_root, "static", "temp_files", "tracts_nitrate_stats.dbf")
-
-    print("Before zonal stats")
     
     try:
         arcpy.env.cellSize = 400
@@ -27,9 +25,6 @@ def perform_zonal():
         )
     except Exception as e:
         print(e)
-
-
-    print("after zonal stats")
 
 
 def perform_regression():
@@ -54,10 +49,7 @@ def perform_regression():
             join_field="GEOID10"
         )
 
-        print("before calc field")
         fields = arcpy.ListFields("tracts_layer")
-        for field in fields:
-            print(field.name)
 
         arcpy.management.CalculateField(
             in_table="tracts_layer",
@@ -66,7 +58,6 @@ def perform_regression():
             expression_type="PYTHON3"
         )
 
-        print("before glr")
 
         arcpy.stats.GeneralizedLinearRegression(
             in_features=tracts,
@@ -79,7 +70,8 @@ def perform_regression():
         arcpy.conversion.FeaturesToJSON(
             in_features=output_glr,
             out_json_file=geojson_path,
-            geoJSON="GEOJSON"
+            geoJSON="GEOJSON",
+            outputToWGS84="WGS84"
         )
     except Exception as e:
         print(e)
