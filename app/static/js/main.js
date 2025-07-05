@@ -357,6 +357,12 @@ function submitCoeff() {
     .then(data => {
       // Return a promise from addGLRToMap
       displayGLRStats(data.glr_stats)
+
+      //Creates button to download GLR shapefile
+      const downloadBtn = document.getElementById("download-glr");
+      downloadBtn.href = data.download_url;
+      downloadBtn.style.display = "inline-block";
+
       return addGLRToMap(data.geojson_url); 
     });
 

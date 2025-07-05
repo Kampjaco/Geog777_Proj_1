@@ -40,6 +40,22 @@ button:hover {
   background-color: #e0e0e0;
 }
 
+.download-button {
+  display: none;
+  font-weight: bold;
+  padding: 8px 12px;
+  background-color: #007bff;
+  color: black !important;
+  font-weight: bold;
+  text-decoration: none;
+  border-radius: 4px;
+  transition: background-color 0.2s ease-in-out;
+}
+
+.download-button:hover {
+  background-color: #0056b3;
+}
+
 /* Legend Styling */
 .info.legend {
   background: white;

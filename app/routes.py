@@ -1,7 +1,7 @@
 from flask import render_template, jsonify, request
 from app import app
 from app.call_idw import perform_idw
-from app.call_zonal_regression import perform_zonal, perform_regression
+from app.call_zonal_regression import perform_zonal, perform_regression, zip_shapefile
 
 
 
@@ -32,10 +32,13 @@ def call_zonal_regression_route():
         perform_zonal()
         regression_path, stats = perform_regression()
 
+        zip_shapefile()
+
         return jsonify({
             "message": "success",
             "geojson_url": regression_path,
-            "glr_stats": stats
+            "glr_stats": stats,
+            "download_url": "/static/final_files/output_glr.zip"
         })
     except Exception as e:
         return jsonify({"message": "error", "message": str(e)}), 500

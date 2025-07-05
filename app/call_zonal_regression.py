@@ -3,6 +3,7 @@ from arcpy.sa import *
 from arcpy.management import *
 from arcpy.stats import *
 import os
+import zipfile
 
 def perform_zonal():
 
@@ -75,6 +76,20 @@ def perform_regression():
         print(e)
 
     return "/static/final_files/output_glr.geojson", glr_stats
+
+def zip_shapefile():
+
+    project_root = os.path.dirname(os.path.abspath(__file__))
+    shapefile_folder = os.path.join(project_root, "static", "final_files")
+    shapefile_base = "output_glr"
+    zip_path = os.path.join(shapefile_folder, "output_glr.zip")
+
+    extensions = ['.shp', '.shx', '.dbf', '.prj', '.cpg']
+    with zipfile.ZipFile(zip_path, 'w') as zipf:
+        for ext in extensions:
+            path = os.path.join(shapefile_folder, f"{shapefile_base}{ext}")
+            if os.path.exists(path):
+                zipf.write(path, arcname=f"{shapefile_base}{ext}")
 
 
 
