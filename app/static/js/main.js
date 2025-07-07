@@ -20,6 +20,7 @@ var stadia = L.tileLayer('https://tiles.stadiamaps.com/tiles/outdoors/{z}/{x}/{y
 const map = L.map('map', {
   center: [44.63123767665573, -89.64431989719363],
   zoom: 7,
+  minZoom: 7,
   layers: [grey]
 });
 
@@ -133,7 +134,7 @@ fetch('/static/raw_files/cancer_tracts.geojson')
       onEachFeature: function(feature, layer) {
         const rawRate = feature.properties.canrate;
         const truncatedRate = Math.floor(rawRate * 100) / 100;
-        layer.bindPopup(`Cancer rate: ${truncatedRate}%`);
+        layer.bindPopup(`Cancer rate: ${truncatedRate}`);
       }
     }).addTo(cancerTractsLayer);
   });
@@ -341,6 +342,9 @@ function submitCoeff() {
     return
   }
 
+  //Tells user data is processing
+  document.getElementById("processing-overlay").style.display = "flex";
+
   // Start both requests in parallel
   const idwPromise = fetch('/call_idw', {
     method: 'POST',
@@ -370,6 +374,7 @@ function submitCoeff() {
   Promise.all([idwPromise, glrPromise]).then(() => {
     alert("Analysis successful!  Toggle additional layers on top right portion of screen.")
     updateLayerGroups();
+    document.getElementById("processing-overlay").style.display = "none";
   });
 }
 

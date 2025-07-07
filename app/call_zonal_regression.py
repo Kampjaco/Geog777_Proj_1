@@ -89,7 +89,7 @@ def zip_shapefile():
         for ext in extensions:
             path = os.path.join(shapefile_folder, f"{shapefile_base}{ext}")
             if os.path.exists(path):
-                zipf.write(path, arcname=f"{shapefile_base}{ext}")
+                zipf.write(path, arcname=f"{shapefile_base }{ext}")
 
 
 
